@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUpRight,
@@ -106,6 +106,8 @@ const projects: Project[] = [
   },
 ];
 
+const heroImages = ["/pic1.jpg", "/pic2.jpg", "/pic3.jpg", "/pic4.jpg", "/pic5.jpg"];
+
 // Skills displayed in the toolkit section
 const skillGroups = [
   {
@@ -163,6 +165,36 @@ function App() {
   // UI state
   const [filter, setFilter] = useState("All");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeHeroImage, setActiveHeroImage] = useState(0);
+  const galleryPointerStart = useRef<number | null>(null);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveHeroImage((current) => (current + 1) % heroImages.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const handleGalleryPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    galleryPointerStart.current = event.clientX;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleGalleryPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (galleryPointerStart.current === null) return;
+
+    const distance = event.clientX - galleryPointerStart.current;
+    galleryPointerStart.current = null;
+
+    if (Math.abs(distance) < 40) return;
+
+    setActiveHeroImage((current) =>
+      distance < 0
+        ? (current + 1) % heroImages.length
+        : (current - 1 + heroImages.length) % heroImages.length,
+    );
+  };
 
   // Project filters and navigation
   const filters = [
@@ -262,12 +294,38 @@ function App() {
         <div className="hero-side">
           <div className="orbit orbit-one" />
           <div className="orbit orbit-two" />
-          <div className="hero-mark">
-            <span>AI</span>
-            <span className="mark-line" />
-            <span>DATA</span>
-            <span className="mark-line" />
-            <span>IOT</span>
+          <div
+            className="hero-gallery"
+            aria-label="Photo gallery. Swipe or drag to change photos."
+            onPointerDown={handleGalleryPointerDown}
+            onPointerUp={handleGalleryPointerUp}
+            onPointerCancel={() => {
+              galleryPointerStart.current = null;
+            }}
+          >
+            {heroImages.map((image, index) => (
+              <img
+                key={image}
+                className={`hero-photo ${index === activeHeroImage ? "is-active" : ""}`}
+                src={image}
+                alt={`Chayapol Lamthien photo ${index + 1}`}
+                aria-hidden={index !== activeHeroImage}
+              />
+            ))}
+            <div className="hero-gallery-shade" />
+            <div className="hero-gallery-focus" />
+            <div className="hero-gallery-dots" aria-label="Choose a photo">
+              {heroImages.map((image, index) => (
+                <button
+                  key={image}
+                  className={index === activeHeroImage ? "is-active" : ""}
+                  type="button"
+                  aria-label={`Show photo ${index + 1}`}
+                  aria-current={index === activeHeroImage}
+                  onClick={() => setActiveHeroImage(index)}
+                />
+              ))}
+            </div>
           </div>
           <div className="floating-note note-one">
             <BrainCircuit size={16} /> Applied AI
@@ -275,7 +333,6 @@ function App() {
           <div className="floating-note note-two">
             <Workflow size={16} /> Workflow automation
           </div>
-          <div className="hero-index">PORTFOLIO / 2026</div>
         </div>
         <a href="#about" className="scroll-hint">
           <ArrowDown size={15} /> SCROLL TO EXPLORE
